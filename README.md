@@ -1,0 +1,1 @@
+Order management microservice for NovaMarket, responsible for creating, processing, tracking, and managing customer orders. Built with Spring Boot, Spring Data JPA, PostgreSQL, Flyway, RabbitMQ, Bean Validation, and Actuator, with JUnit and Mockito for testing

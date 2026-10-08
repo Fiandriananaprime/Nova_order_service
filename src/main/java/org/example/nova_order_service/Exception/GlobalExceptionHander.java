@@ -12,4 +12,9 @@ public class GlobalExceptionHander {
     public ResponseEntity<String> handlerInsuffucientStock(InsufficientStockException e){
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
+
+    @ExceptionHandler(BuyerNotFoundException.class)
+    public ResponseEntity<String> handlerUserNotFound(BuyerNotFoundException e){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
 }

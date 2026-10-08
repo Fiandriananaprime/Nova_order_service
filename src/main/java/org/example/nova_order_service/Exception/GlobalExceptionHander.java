@@ -17,4 +17,9 @@ public class GlobalExceptionHander {
     public ResponseEntity<String> handlerUserNotFound(BuyerNotFoundException e){
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<String> handlerProductNotFound(ProductNotFoundException e){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
 }

@@ -6,6 +6,7 @@ import org.example.nova_order_service.Entities.Cart;
 import org.example.nova_order_service.Entities.CartItem;
 import org.example.nova_order_service.Exception.BuyerNotFoundException;
 import org.example.nova_order_service.Exception.InsufficientStockException;
+import org.example.nova_order_service.Exception.ProductNotFoundException;
 import org.example.nova_order_service.client.ProductGrpcClient;
 import org.example.nova_order_service.dto.CartResponse;
 import org.example.nova_order_service.dto.ProductDto;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -110,8 +112,8 @@ public class CartService {
             item.setProductId(productId);
             publisherService.Publish(new ItemAdded(buyerId, productId, quantity));
         }
-        cartRepository.save(cart);
-        cartItemRepository.save(item);
+        cart.setUpdatedAt(OffsetDateTime.now());
+
 
         return new ProductDto(
                 UUID.fromString(product.getProductId()),
@@ -126,5 +128,39 @@ public class CartService {
                 product.hasDiscount() ? BigDecimal.valueOf(product.getDiscount()) : null,
                 BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(item.getQty()))
         );
+    }
+
+    @Transactional
+    public ProductDto updateItemQty(UUID buyerId, UUID productId, int quantity){
+        Cart cart = cartRepository.findCartByBuyerId(buyerId).orElseThrow(() -> new BuyerNotFoundException("User Not Found"));
+        CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(),productId)
+                .orElseThrow(ProductNotFoundException::new);
+        item.setQty(quantity);
+
+        cart.setUpdatedAt(OffsetDateTime.now());
+        Product product = productClient.getProduct(productId);
+
+        if(product.getStock()<item.getQty()) throw new InsufficientStockException("Insufficient product stock");
+
+        return new ProductDto(
+                UUID.fromString(product.getProductId()),
+                product.getName(),
+                product.getImage(),
+                BigDecimal.valueOf(product.getPrice()),
+                quantity,
+                UUID.fromString(product.getSellerId()),
+                product.getSellerName(),
+                product.getStock(),
+                BigDecimal.valueOf(product.getOriginalPrice()),
+                BigDecimal.valueOf(product.getDiscount()),
+                BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(quantity))
+        );
+    }
+
+    @Transactional
+    public void deleteItemByUserId(UUID buyerId, UUID productId){
+        Cart cart = cartRepository.findCartByBuyerId(buyerId).orElseThrow(() -> new BuyerNotFoundException("Buyer Cart not Found"));
+        cartItemRepository.deleteCartItemByIdAndCart(productId,cart);
+        cart.setUpdatedAt(OffsetDateTime.now());
     }
 }

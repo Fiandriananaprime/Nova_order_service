@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package product;
+
+option java_multiple_files = true;
+option java_package = "com.novamarket.grpc.product";
+
+service ProductService {
+
+  rpc GetProduct(GetProductRequest)
+      returns (Product);
+
+  rpc GetProducts(GetProductsRequest)
+      returns (GetProductsResponse);
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductsRequest {
+  repeated string product_ids = 1;
+}
+
+message GetProductsResponse {
+  repeated Product products = 1;
+}
+
+message Product {
+  string product_id = 1;
+  string name = 2;
+  string image = 3;
+  double price = 4;
+  string seller_id = 5;
+  string seller_name = 6;
+  int32 stock = 7;
+  optional double original_price = 8;
+  optional double discount = 9;
+}

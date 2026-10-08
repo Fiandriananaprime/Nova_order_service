@@ -19,7 +19,7 @@ import java.util.UUID;
 public class CartController {
     private final CartService service;
 
-    @GetMapping("/")
+    @GetMapping
     public CartResponse getCart(
             @RequestHeader("x-user-id") UUID buyerId
     ){
@@ -35,7 +35,7 @@ public class CartController {
         return service.addItem(buyerId,request.productId(),request.qty());
     }
 
-    @DeleteMapping("/")
+    @DeleteMapping
     public ResponseEntity<Void> deleteCart(
             @RequestHeader("x-user-id") UUID buyerId
     ){

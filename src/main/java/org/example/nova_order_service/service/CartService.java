@@ -32,11 +32,13 @@ public class CartService {
     private final amqpPublisherService publisherService;
     private final ProductGrpcClient productClient;
 
+    @Transactional(readOnly = true)
     public CartResponse getCartByBuyerId(UUID buyerId){
         Optional<Cart> cart = cartRepository.findCartByBuyerId(buyerId);
-        if(cart.isEmpty()) throw new BuyerNotFoundException("User not found");
+        if (cart.isEmpty()) return new CartResponse(List.of(), BigDecimal.ZERO);
 
         List<UUID> productsIds = cart.get().getItems().stream().map(CartItem::getProductId).toList();
+        if (productsIds.isEmpty()) return new CartResponse(List.of(), BigDecimal.ZERO);
 
         List<Product> productsDetail = productClient.getProducts(productsIds);
 
@@ -71,7 +73,7 @@ public class CartService {
                 .toList();
 
         BigDecimal subtotal = items.stream()
-                .map(ProductDto::discount)
+                .map(ProductDto::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new CartResponse(
@@ -79,8 +81,9 @@ public class CartService {
                 subtotal);
     }
 
+    @Transactional
     public void deleteByUserId(UUID buyerId){
-        cartRepository.deleteById(buyerId);
+        cartRepository.findCartByBuyerId(buyerId).ifPresent(cartRepository::delete);
     }
 
     @Transactional
@@ -110,6 +113,7 @@ public class CartService {
             item.setCart(cart);
             item.setQty(quantity);
             item.setProductId(productId);
+            cart.getItems().add(item);
             publisherService.Publish(new ItemAdded(buyerId, productId, quantity));
         }
         cart.setUpdatedAt(OffsetDateTime.now());
@@ -151,8 +155,8 @@ public class CartService {
                 UUID.fromString(product.getSellerId()),
                 product.getSellerName(),
                 product.getStock(),
-                BigDecimal.valueOf(product.getOriginalPrice()),
-                BigDecimal.valueOf(product.getDiscount()),
+                product.hasOriginalPrice() ? BigDecimal.valueOf(product.getOriginalPrice()) : null,
+                product.hasDiscount() ? BigDecimal.valueOf(product.getDiscount()) : null,
                 BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(quantity))
         );
     }
@@ -160,7 +164,7 @@ public class CartService {
     @Transactional
     public void deleteItemByUserId(UUID buyerId, UUID productId){
         Cart cart = cartRepository.findCartByBuyerId(buyerId).orElseThrow(() -> new BuyerNotFoundException("Buyer Cart not Found"));
-        cartItemRepository.deleteCartItemByIdAndCart(productId,cart);
+        cartItemRepository.deleteByCartAndProductId(cart, productId);
         cart.setUpdatedAt(OffsetDateTime.now());
     }
 }

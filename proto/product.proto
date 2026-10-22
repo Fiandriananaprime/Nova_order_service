@@ -36,4 +36,8 @@ message Product {
   int32 stock = 7;
   optional double original_price = 8;
   optional double discount = 9;
+  double rating = 10;
+  int32 review_count = 11;
+  string store_id = 12;
+  string store_name = 13;
 }
